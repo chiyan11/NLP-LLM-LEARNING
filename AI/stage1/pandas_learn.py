@@ -1,12 +1,21 @@
 # ============================================================
-# pandas_learn.py —— pandas 基础学习示例
+# pandas_learn.py —— pandas 基础学习示例（详细注释版）
 #
 # 本脚本演示 pandas 的两类核心数据结构：
 #   1. Series（一维带标签数据，类似带索引的列表）
 #   2. DataFrame（二维表格数据，类似 Excel 表格）
 #
-# 涵盖内容：创建 Series、生成日期序列、创建 DataFrame 的多种方式、
-# 查看数据类型/索引/列名/数值、描述性统计、转置以及排序等常用操作。
+# 涵盖内容：
+#   - 创建 Series
+#   - 生成日期序列（date_range）
+#   - 创建 DataFrame 的多种方式（随机数组、arange、字典混合类型）
+#   - 查看数据类型 / 索引 / 列名 / 数值
+#   - 描述性统计（describe）
+#   - 转置（T）
+#   - 排序（sort_index / sort_values）
+#   - 索引与切片（[]、.loc、.iloc、布尔过滤）
+#
+# 运行方式：python pandas_learn.py
 # ============================================================
 
 # ------------------------------------------------------------
@@ -16,6 +25,7 @@
 # 导入 pandas 并起别名 pd。
 # pandas 是 Python 最常用的数据分析库，提供 Series、DataFrame
 # 等数据结构，以及数据处理、清洗、统计分析等功能。
+# 注意：本脚本的写法要求 pandas 0.20 以上（.ix 已被移除）。
 import pandas as pd
 
 # 导入 numpy 并起别名 np。
@@ -29,13 +39,23 @@ import numpy as np
 # 1. Series：一维带标签数据
 # ------------------------------------------------------------
 
-# 用列表 [1,2,3,4,5,6,np.nan] 创建 Series。
-# 不指定索引时，pandas 会自动生成从 0 开始的整数索引。
-# np.nan 表示"缺失值"，是数据分析中常见的空值标记。
+# pd.Series(...) 用列表创建一维序列：
+#   数据 -> [1, 2, 3, 4, 5, 6, np.nan]
+#   索引 -> 未指定，pandas 自动生成从 0 开始的整数索引（0、1、...、6）
+# np.nan 表示"缺失值"（Not a Number），是数据分析中常见的空值标记，
+# 在输出中会显示为 NaN。
+# 注意：因为混入了 np.nan（浮点型），整列数据类型会自动变为 float64。
 a = pd.Series([1,2,3,4,5,6,np.nan])
 
-# 打印 Series：输出结果包含两列，
-# 左列是索引（index），右列是数值；缺失值显示为 NaN。
+# print(a) 输出结果包含两列：
+#   左列是索引（index，0~6），右列是对应的数值；
+#   最后一个值是 NaN（缺失值）。
+# 输出大致如下：
+#   0    1.0
+#   1    2.0
+#   ...
+#   6    NaN
+#   dtype: float64
 print(a)
 
 
@@ -43,13 +63,14 @@ print(a)
 # 2. date_range：生成连续的日期序列
 # ------------------------------------------------------------
 
-# date_range 用于生成时间索引：
-#   start='20260811'：指定起始日期为 2026 年 8 月 11 日；
-#   periods=6：共生成 6 个时间点（默认按天递增）。
+# pd.date_range 用于生成连续的时间索引：
+#   start='20260811'：起始日期为 2026 年 8 月 11 日；
+#   periods=6：一共生成 6 个时间点（默认按天递增）。
 dates = pd.date_range(start='20260811', periods=6)
 
-# 打印日期序列，将得到 2026-08-11 到 2026-08-16 共 6 天，
-# 类型为 DatetimeIndex，可直接作为 DataFrame 的行索引。
+# print(dates) 将得到 2026-08-11 到 2026-08-16 共 6 天，
+# 类型为 DatetimeIndex（pandas 内置的时间索引类型），
+# 可直接作为 DataFrame 的行索引使用。
 print(dates)
 
 
@@ -57,22 +78,28 @@ print(dates)
 # 3. DataFrame：二维表格数据
 # ------------------------------------------------------------
 
-# np.random.randn(6,4) 生成 6 行 4 列、服从标准正态分布的随机数，
-# 再用它创建 DataFrame：
+# np.random.randn(6, 4) 生成 6 行 4 列、服从标准正态分布的随机数
+# （均值约 0、标准差约 1）；
+# pd.DataFrame(...) 把它包装成表格：
 #   index=dates            行索引为前面生成的 6 个日期；
 #   columns=list('ABCD')   列名为 A、B、C、D。
-# 由于是随机数，每次运行输出的数值都会不同。
+# 由于数据是随机数，每次运行输出的数值都会不同。
 df = pd.DataFrame(np.random.randn(6,4), index=dates, columns=list('ABCD'))
 
-# 打印该 DataFrame，将看到一张带日期行索引、字母列名的表格。
+# print(df) 将看到一张 6 行 4 列的表格：
+#   行索引是 2026-08-11 ~ 2026-08-16；
+#   列名是 A、B、C、D；
+#   每个单元格是一个随机浮点数。
 print(df)
 
-# np.arange(12) 生成 0~11 共 12 个连续整数，
-# .reshape((3,4)) 将其整理成 3 行 4 列的二维数组，再创建 DataFrame。
+# np.arange(12) 生成 0~11 共 12 个连续整数的一维数组；
+# .reshape((3, 4)) 将其整理成 3 行 4 列的二维数组；
+# 再交给 pd.DataFrame(...) 创建表格。
 # 未指定 index 和 columns 时，pandas 自动使用 0、1、2... 作为行列索引。
 df1 = pd.DataFrame(np.arange(12).reshape((3,4)))
 
-# 打印 df1，将得到一张 3 行 4 列、值为 0~11 的表格。
+# print(df1) 将得到一张 3 行 4 列、值为 0~11 的表格：
+#   行索引为 0、1、2，列名为 0、1、2、3。
 print(df1)
 
 
@@ -81,6 +108,13 @@ print(df1)
 # ------------------------------------------------------------
 # 字典的每个键（key）会成为一列，每个值（value）是该列的数据。
 # 这种方式可以同时容纳多种数据类型，pandas 会按列自动推断类型。
+# 本字典定义了 6 个键（A~F），对应 6 列，最终得到 4 行 6 列的表格：
+#   A：标量 1.0（float），pandas 会自动"广播"填充到所有 4 行；
+#   B：pd.Timestamp('20210607')，一个时间戳，演示 datetime 类型列；
+#   C：pd.Series(1, index=0~3, dtype='float32')，4 个值为 1 的 float32 序列；
+#   D：np.array([3]*4, dtype='int32')，4 个值为 3 的 int32 数组；
+#   E：pd.Categorical(...)，分类数据，适合表示有限取值的离散变量；
+#   F：字符串 'foo'，同样广播到每一行。
 df2 = pd.DataFrame({'A':1.,
                 'B':pd.Timestamp('20210607'),
                 'C':pd.Series(1,index=list(range(4)),dtype='float32'),
@@ -88,15 +122,11 @@ df2 = pd.DataFrame({'A':1.,
                 'E':pd.Categorical(["test","train","test","train"]),
                 'F':'foo'})
 
-# 各列含义说明：
-#   A：标量 1.0（浮点数），pandas 会自动广播填充到所有行；
-#   B：时间戳 2021-06-07，演示 datetime 类型列；
-#   C：Series，索引 0~3 共 4 个元素，值全为 1，类型 float32；
-#   D：numpy 数组 [3,3,3,3]，类型 int32；
-#   E：分类数据（Categorical），适合表示有限取值的离散变量；
-#   F：字符串 'foo'，同样广播到每一行。
-
-# 打印 df2，将得到一张 4 行 6 列的表格，各列数据类型不同。
+# print(df2) 将输出一张 4 行 6 列的表格：
+#   行索引是 0~3；
+#   A 列全是 1.0，B 列全是 2021-06-07，
+#   C 列全是 1.0（float32），D 列全是 3（int32），
+#   E 列是 test/train 交替出现，F 列全是 'foo'。
 print(df2)
 
 
@@ -104,28 +134,42 @@ print(df2)
 # 5. DataFrame 的常用属性
 # ------------------------------------------------------------
 
-# dtypes：查看每一列的数据类型
-# （如 float64、datetime64[ns]、float32、int32、category、object）。
+# df2.dtypes：查看每一列的数据类型。
+# 返回一个 Series：索引是列名，值是类型。
+# 本例输出大致为：
+#   A          float64
+#   B    datetime64[ns]
+#   C          float32
+#   D            int32
+#   E        category
+#   F           object
 print(df2.dtypes)
 
-# index：查看行索引（默认是 RangeIndex，即 0、1、2、3）。
+# df2.index：查看行索引。
+# 本例未指定 index，默认是 RangeIndex(0, 4)，即 0、1、2、3。
 print(df2.index)
 
-# columns：查看列名列表（['A','B','C','D','E','F']）。
+# df2.columns：查看列名列表，即 ['A', 'B', 'C', 'D', 'E', 'F']。
 print(df2.columns)
 
-# values：以 numpy 二维数组的形式返回 DataFrame 中的数据，
-# 注意它不包含索引和列名，只包含纯数值。
+# df2.values：以 numpy 二维数组的形式返回 DataFrame 中的数据，
+# 注意：它不包含行索引和列名，只包含纯数值。
 print(df2.values)
 
-# describe()：生成描述性统计摘要，
-# 包括每列的数量（count）、均值（mean）、标准差（std）、
-# 最小值（min）、四分位数（25%/50%/75%）和最大值（max）。
-# 默认只统计数值型列（本示例中为 A、C、D）。
+# df2.describe()：生成描述性统计摘要，
+# 对每一列统计：
+#   count —— 非缺失值的数量
+#   mean  —— 均值
+#   std   —— 标准差
+#   min   —— 最小值
+#   25% / 50% / 75% —— 四分位数
+#   max   —— 最大值
+# 默认只统计数值型列，本示例中为 A、C、D 三列。
 print(df2.describe())
 
-# 转置（Transpose）：把行列互换，行索引变列名、列名变行索引。
-# 对于 df2，转置后原来的 4 行 6 列会变成 6 行 4 列。
+# df2.T：转置（Transpose），把行列互换：
+#   原来的行索引变成列名，原来的列名变成行索引。
+# 对于 df2（4 行 6 列），转置后变成 6 行 4 列。
 print(df2.T)
 
 
@@ -133,17 +177,74 @@ print(df2.T)
 # 6. 排序
 # ------------------------------------------------------------
 
-# sort_index(axis=1, ascending=False)：按"列索引"排序。
-# axis=1 表示沿列方向，即对列名 A~F 排序；
-# ascending=False 表示降序，列会按 F、E、D、C、B、A 排列。
+# df2.sort_index(axis=1, ascending=False)：按"列索引"（列名）排序。
+#   axis=1：沿列方向操作，即对列名 A~F 排序；
+#   ascending=False：降序，因此列会按 F、E、D、C、B、A 排列。
+# 注意：排序只影响输出的顺序，不会修改 df2 本身。
 print(df2.sort_index(axis=1,ascending=False))
 
-# sort_index(axis=0, ascending=False)：按"行索引"排序。
-# axis=0 表示沿行方向，即对行索引 0~3 排序；
-# ascending=False 表示降序，行会按 3、2、1、0 排列。
+# df2.sort_index(axis=0, ascending=False)：按"行索引"排序。
+#   axis=0：沿行方向操作，即对行索引 0~3 排序；
+#   ascending=False：降序，因此行会按 3、2、1、0 排列。
 print(df2.sort_index(axis=0,ascending=False))
 
-# sort_values(by='E', ascending=False)：按指定"列的值"排序。
-# by='E' 表示根据 E 列的值排序；E 是分类数据（test/train），
-# ascending=False 表示降序，因此 train 行会排在 test 行前面。
+# df2.sort_values(by='E', ascending=False)：按指定"列的值"排序。
+#   by='E'：根据 E 列的值排序；
+#   E 是分类数据（test/train）；
+#   ascending=False：降序，因此 train 行会排在 test 行前面。
 print(df2.sort_values(by='E',ascending=False))
+
+
+# ------------------------------------------------------------
+# 7. 索引与切片：从 DataFrame 中取出需要的行和列
+# ------------------------------------------------------------
+# 下面演示三种主要取值方式：
+#   df[...]      —— 方括号：取列，或按位置/标签对行切片；
+#   .loc         —— 按"标签"选取（行索引名、列名），切片是闭区间；
+#   .iloc        —— 按"位置"选取（第几行、第几列），切片左闭右开。
+# 此外还有"布尔过滤"：根据条件挑选满足条件的行。
+
+# df['A']：按列名取出一列，结果是 Series，列名 A 成为该 Series 的名字；
+# df.A：等价的"属性"写法，效果相同（仅当列名是合法标识符时才可用）。
+# 两者都返回 A 列的 6 个随机数，行索引仍是那 6 个日期。
+print(df['A'],df.A)
+
+# df[0:3]：方括号里传整数切片时，按"行位置"取前 3 行
+#          （位置 0、1、2），等价于 df.iloc[0:3]；
+# df['20260811':'20260813']：方括号里传日期字符串时，
+#          pandas 会把字符串解析为行索引标签，
+#          按"标签"取 2026-08-11 到 2026-08-13 这三天的行。
+#          注意：标签切片是闭区间，两端都包含。
+print(df[0:3],df['20260811':'20260813'])
+
+# df.loc['20260811']：按行索引标签取"一行"，
+# 返回一个 Series，索引是列名 A~D，值是当天的 4 个随机数。
+print(df.loc['20260811'])
+
+# df.loc['20260811':, ['A','B']]：按标签同时选取行和列：
+#   行：从标签 '20260811' 开始一直到最后一行（'20260811': 表示"从该标签起"）；
+#   列：只取 A、B 两列。
+# 结果是包含 6 行 2 列的 DataFrame。
+print(df.loc['20260811':,['A','B']])
+
+# df.iloc[3:5, 1:3]：按"位置"同时选取行和列：
+#   行：位置 3 和 4（第 4、5 行；切片右侧不包含位置 5）；
+#   列：位置 1 和 2（第 2、3 列，即 B、C 列）。
+# 结果是 2 行 2 列的 DataFrame。
+print(df.iloc[3:5,1:3])
+
+# 旧版 pandas 用 df.ix[:3,['A','C']] 做"混合索引"
+# （按位置切前 3 行 + 按标签选 A、C 列），
+# 但 .ix 在 pandas 0.20 之后已被移除。
+# 等价写法：df.index[:3] 先取出前 3 个行标签（日期），
+# 再交给 .loc 按标签同时选取行和列。
+# 结果是 3 行 2 列（A、C 列）的 DataFrame。
+print(df.loc[df.index[:3],['A','C']])
+
+# df[df.A<0]：布尔过滤（条件筛选）。
+#   先计算 df.A<0：对 A 列的每个值判断是否小于 0，
+#   得到一个全为 True/False 的布尔 Series；
+#   再把它作为行索引传入 df[...]，只保留对应位置为 True 的行。
+# 结果是不固定行数的 DataFrame：A 列为负数的行保留，其余丢弃。
+print(df[df.A<0])
+
