@@ -288,3 +288,4 @@ df['E'] = pd.Series([1,2,3,4,5,6],index=pd.date_range('20260811',periods=6))
 # 可以看到之前的修改：C 列第 3 行是 111、B 列首行是 222、
 # A 列原来的正数都变成了 0；E 列是 1~6；F 列全是 NaN。
 print(df)
+
