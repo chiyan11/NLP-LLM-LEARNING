@@ -15,6 +15,9 @@
 #   - 排序（sort_index / sort_values）
 #   - 索引与切片（[]、.loc、.iloc、布尔过滤）
 #   - 修改与新增列（单步赋值、索引对齐）
+#   - 缺失值处理（dropna / fillna / isnull）
+#   - CSV 文件读取与 Markdown 导出
+#   - concat 拼接多个 DataFrame（含 join / reindex）
 #
 # 运行方式：python pandas_learn.py
 # ============================================================
@@ -289,12 +292,140 @@ df['E'] = pd.Series([1,2,3,4,5,6],index=pd.date_range('20260811',periods=6))
 # A 列原来的正数都变成了 0；E 列是 1~6；F 列全是 NaN。
 print(df)
 
-print(df.dropna(axis=1,how='any')) #how = all全部NaN才丢掉
+# ------------------------------------------------------------
+# 9. 缺失值处理
+# ------------------------------------------------------------
+# 经过上一步操作后，df 的 F 列全是 NaN，因此下面演示
+# pandas 处理缺失值（NaN）的三种常用方式。
+
+# df.dropna(axis=1, how='any')：删除含缺失值的"列"。
+#   axis=1：沿列方向操作，即删除"列"而不是"行"；
+#   how='any'：只要该列中存在任意一个 NaN 就整列删除
+#              （若改为 how='all'，则只有整列全是 NaN 才删除）。
+# 本例中 F 列全是 NaN，A、B、E 等列因修改后也可能出现 NaN，
+# 所以打印结果里所有"包含任一 NaN"的列都会被丢掉。
+# 注意：dropna 默认返回新表，不会修改原 df。
+print(df.dropna(axis=1, how='any'))
+
+# df.fillna(value=0)：把表中所有 NaN 填充为 0。
+#   value=0：指定填充值，可以是标量（所有缺失位置都填 0），
+#            也可以是字典/Series（按列分别指定填充值）。
+# 同样地，fillna 默认返回新表，不会修改原 df。
 print(df.fillna(value=0))
+
+# df.isnull()：逐单元格判断是否为缺失值。
+# 返回一个与 df 形状相同的布尔 DataFrame：
+#   缺失位置 -> True，非缺失位置 -> False。
+# 它是检查缺失值最常用的方法，常与 sum() 连用统计每列缺失个数。
 print(df.isnull())
+
+# np.any(df.isnull()) == True：判断表中"是否存在任何缺失值"。
+#   df.isnull() 先生成布尔表；
+#   np.any(...) 只要表中存在一个 True（即一个 NaN）就返回 True；
+#   再与 True 比较，结果等价于 np.any(df.isnull()) 本身。
+# 本例 F 列全是 NaN，所以输出 True。
 print(np.any(df.isnull()) == True)
 
+
+# ------------------------------------------------------------
+# 10. CSV 读取与 Markdown 导出
+# ------------------------------------------------------------
+
+# pd.read_csv('air_quality_2025.csv')：读取同目录下的 CSV 文件。
+# pandas 会自动识别：首行为列名、按行解析数据、自动推断各列类型。
+# 返回一个 DataFrame 并赋值给 data。
+# 注意：运行脚本前必须保证该 CSV 文件与脚本在同一目录下，
+#       否则会抛出 FileNotFoundError。
 data = pd.read_csv('air_quality_2025.csv')
+
+# print(data) 直接打印整张表：行数多时 pandas 会自动省略中间行，
+# 只显示开头和结尾各 5 行（默认显示设置）。
 print(data)
+
+# data.to_markdown('air_quality_2025.md')：把 DataFrame 导出为
+# Markdown 表格，并写入同目录下的 air_quality_2025.md 文件。
+# 导出的格式便于直接粘贴到 README、文档或博客中展示。
+# 注意：该功能依赖第三方库 tabulate，若未安装会报错；
+# 可用 pip install tabulate 安装。
 data.to_markdown('air_quality_2025.md')
 
+
+# ------------------------------------------------------------
+# 11. concat：沿轴拼接多个 DataFrame
+# ------------------------------------------------------------
+
+# 下面三个 df 结构完全相同（都是 3 行 4 列、列名 A~D），
+# 只是数值分别是 0、1、2，用于演示最常见的"纵向拼接"。
+df3 = pd.DataFrame(np.ones((3,4))*0,columns=list('ABCD'))
+df4 = pd.DataFrame(np.ones((3,4))*1,columns=list('ABCD'))
+df5 = pd.DataFrame(np.ones((3,4))*2,columns=list('ABCD'))
+
+# pd.concat([...], axis=0, ignore_index=True)：纵向拼接多张表。
+#   axis=0：沿行方向拼接，把 df4、df5 依次接到 df3 下方；
+#   ignore_index=True：忽略原有的行索引 0~2，重新生成 0~8 的连续索引。
+# 最终 res 是一张 9 行 4 列的表。
+res = pd.concat([df3,df4,df5],axis=0,ignore_index=True)
+print(res)
+
+# 下面两个 df 的行索引和列名都不完全一致，用于演示 join 对齐方式：
+#   df6：行索引 [1,2,3]，列 A、B、C、D；
+#   df7：行索引 [2,3,4]，列 B、C、D、E。
+df6 = pd.DataFrame(np.ones((3,4))*0,columns=list('ABCD'),index=[1,2,3])
+df7 = pd.DataFrame(np.ones((3,4))*1,columns=list('BCDE'),index=[2,3,4])
+
+# join='inner'：列只保留两边"都有"的（交集 B、C、D）；
+#              行是纵向堆叠，全部保留，不取交集。
+# 注意：ignore_index=True 会丢掉原始行索引 [1,2,3]、[2,3,4]，
+#       重新编号为 0~5，因此这里看不到行索引的对齐效果。
+res1 = pd.concat([df6,df7],axis=0,ignore_index=True,join='inner')
+print(res1)
+# join='outer'（默认值）：列保留两边"所有"的（并集 A~E），
+#                        某张表没有的列自动填 NaN。
+res2 = pd.concat([df6,df7],axis=0,ignore_index=True,join='outer')
+print(res2)
+# 旧版 pandas 曾支持 join_axes=[df6.index]，表示"拼接后只保留
+# df6 的行索引 [1,2,3]"；但 pandas 2.0 起该参数已被移除，
+# 直接使用会报错：concat() got an unexpected keyword argument 'join_axes'。
+# 官方推荐的等价写法是"先 reindex 再拼接"：
+#   df7.reindex(df6.index)：把 df7 的行索引重排成 [1,2,3]，
+#       df7 中原本索引为 1、4 的行因找不到对应标签而变成 NaN；
+#   然后与 df6 一起纵向拼接，得到 6 行（索引 1、2、3、1、2、3）。
+res3 = pd.concat([df6, df7.reindex(df6.index)], axis=0)
+print(res3)
+
+# df.join(s)：把 Series 横向并到 DataFrame 末尾，成为新的一列。
+# 使用时有两点必须注意：
+#   1. Series 必须有 name —— 它将成为新列的列名；
+#      缺 name 会直接报错：ValueError: Other Series must have a name。
+#   2. join 是按"行索引"对齐的：df6 的行索引是 [1,2,3]，
+#      下面 s1 的 index 是 [1,2,3,4]：其中 1、2、3 能与 df6 对上，
+#      E 列得到对应值 1、2、3；索引 4 在 df6 中不存在，
+#      加上 join 默认 how='left'（只保留左侧 df6 的行索引），
+#      所以 s1 索引为 4 的那一行会被丢弃。
+s1 = pd.Series([1,2,3,4],index=[1,2,3,4],name='E')
+print(df6.join(s1))
+
+# 新行：构造一个只有一行的 DataFrame，再拼接到 df6 末尾。
+# 注意：不能写 pd.DataFrame([9,8,7,6], ...) ——
+# 单层列表 [9,8,7,6] 会被 pandas 当成"一列数据"（4 行 1 列），
+# 与 columns=list('ABCD')（4 列）、index=[4]（1 行）冲突，会报错：
+#   ValueError: Shape of passed values is (4, 1), indices imply (1, 4)
+# 要表示"一行 4 列"，数据必须是"列表的列表"：
+#   [[9,8,7,6]]：外层 1 个元素 = 1 行，内层 4 个元素 = 4 列；
+# columns=list('ABCD')：给这 4 列分别命名 A、B、C、D；
+# index=[4]：给新行指定行索引 4，不与 df6 现有的 1、2、3 重复。
+new_row = pd.DataFrame([[9,8,7,6]],columns=list('ABCD'),index=[4])
+
+# 另一种等价写法：用"字典列表"，键直接写成列名，更直观：
+# new_row = pd.DataFrame([{'A':9,'B':8,'C':7,'D':6}],index=[4])
+
+# pd.concat([df6, new_row])：把新行纵向接到 df6 末尾。
+# 这里没有写 ignore_index=True，所以行索引保持原样：1、2、3、4；
+# new_row 的索引 [4] 不与 df6 现有索引冲突，拼接结果干净。
+# 注意：concat 返回的是新表，必须用 df6 = ... 接住，原 df6 本身不变。
+df6 = pd.concat([df6, new_row])
+
+# print(df6) 输出 4 行 4 列：
+#   前三行是原来的 0.0（行索引 1、2、3），
+#   最后一行是新增的 9.0 / 8.0 / 7.0 / 6.0（行索引 4）。
+print(df6)
