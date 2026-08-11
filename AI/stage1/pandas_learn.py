@@ -289,3 +289,12 @@ df['E'] = pd.Series([1,2,3,4,5,6],index=pd.date_range('20260811',periods=6))
 # A 列原来的正数都变成了 0；E 列是 1~6；F 列全是 NaN。
 print(df)
 
+print(df.dropna(axis=1,how='any')) #how = all全部NaN才丢掉
+print(df.fillna(value=0))
+print(df.isnull())
+print(np.any(df.isnull()) == True)
+
+data = pd.read_csv('air_quality_2025.csv')
+print(data)
+data.to_markdown('air_quality_2025.md')
+
