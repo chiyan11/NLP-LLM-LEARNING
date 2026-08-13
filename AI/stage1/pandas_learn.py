@@ -38,6 +38,12 @@ import pandas as pd
 #   np.random.randn() —— 生成标准正态分布随机数
 import numpy as np
 
+# 导入 matplotlib 的 pyplot 模块并起别名 plt。
+# matplotlib 是 Python 最常用的绘图库；pyplot 提供了类似 MATLAB 风格的
+# 画图接口（plot、scatter、show 等函数）。
+# 本脚本最后一部分会用 plt 画折线图、散点图并弹出窗口显示；
+# 如果只做数据分析、不需要绘图，可以删除这一行。
+import matplotlib.pyplot as plt
 
 # ------------------------------------------------------------
 # 1. Series：一维带标签数据
@@ -69,7 +75,14 @@ print(a)
 
 # pd.date_range 用于生成连续的时间索引：
 #   start='20260811'：起始日期为 2026 年 8 月 11 日；
-#   periods=6：一共生成 6 个时间点（默认按天递增）。
+#   periods=6：一共生成 6 个时间点；
+#   freq 未指定：默认 'D'（按天递增）。
+# 也可以通过 freq 参数改变频率，例如：
+#   freq='H'   按小时     freq='B'   仅工作日
+#   freq='W'   按周       freq='MS'  按月首
+#   freq='ME'  按月（月末）
+# start、end、periods、freq 四个参数中，start 与 end 可以组合，
+# 或 start 与 periods 组合，通常无需全部指定。
 dates = pd.date_range(start='20260811', periods=6)
 
 # print(dates) 将得到 2026-08-11 到 2026-08-16 共 6 天，
@@ -158,6 +171,9 @@ print(df2.columns)
 
 # df2.values：以 numpy 二维数组的形式返回 DataFrame 中的数据，
 # 注意：它不包含行索引和列名，只包含纯数值。
+# 若表中含有 datetime、字符串等混合类型，返回的数组 dtype 是 object，
+# 但每个元素仍保留各自原来的类型。
+# pandas 官方新推荐写法是 df2.to_numpy()，与 .values 语义完全一致。
 print(df2.values)
 
 # df2.describe()：生成描述性统计摘要，
@@ -169,6 +185,11 @@ print(df2.values)
 #   25% / 50% / 75% —— 四分位数
 #   max   —— 最大值
 # 默认只统计数值型列，本示例中为 A、C、D 三列。
+# 常用可选参数：
+#   include='all'     —— 把字符串、时间等非数值列也纳入统计；
+#   percentiles=[...] —— 自定义分位数（默认 [0.25, 0.5, 0.75]）。
+# 对非数值列，describe 会统计 count、unique（不同值个数）、
+# top（出现最多的值）、freq（最高频值的出现次数）。
 print(df2.describe())
 
 # df2.T：转置（Transpose），把行列互换：
@@ -250,6 +271,9 @@ print(df.loc[df.index[:3],['A','C']])
 #   得到一个全为 True/False 的布尔 Series；
 #   再把它作为行索引传入 df[...]，只保留对应位置为 True 的行。
 # 结果是不固定行数的 DataFrame：A 列为负数的行保留，其余丢弃。
+# 多条件筛选时用 &（与）、|（或）连接，且每个条件都要加括号，例如：
+#   df[(df.A < 0) & (df.B > 0)]  同时满足两个条件的行
+# 注意不能写 and/or：那是对单个布尔值做逻辑运算，会直接报错。
 print(df[df.A<0])
 
 # ------------------------------------------------------------
@@ -305,6 +329,10 @@ print(df)
 # 本例中 F 列全是 NaN，A、B、E 等列因修改后也可能出现 NaN，
 # 所以打印结果里所有"包含任一 NaN"的列都会被丢掉。
 # 注意：dropna 默认返回新表，不会修改原 df。
+# 其他常用参数：
+#   thresh=n —— 只保留"非缺失值至少 n 个"的行/列；
+#   subset=['A'] —— 只根据指定列是否缺失来判断；
+#   inplace=True —— 原地修改 df（默认 False，返回新表）。
 print(df.dropna(axis=1, how='any'))
 
 # df.fillna(value=0)：把表中所有 NaN 填充为 0。
@@ -336,6 +364,13 @@ print(np.any(df.isnull()) == True)
 # 返回一个 DataFrame 并赋值给 data。
 # 注意：运行脚本前必须保证该 CSV 文件与脚本在同一目录下，
 #       否则会抛出 FileNotFoundError。
+# 常用可选参数：
+#   sep=','        —— 字段分隔符，默认逗号；
+#   header=0       —— 用第 0 行做列名（None 表示文件没有列名行）；
+#   names=[...]    —— 手动指定列名；
+#   index_col=0    —— 把第 0 列当作行索引，而不是普通数据列；
+#   encoding='gbk' —— 含中文的 CSV 常需显式指定 gbk 或 utf-8 编码；
+#   skiprows=n     —— 读取前先跳过开头 n 行。
 data = pd.read_csv('air_quality_2025.csv')
 
 # print(data) 直接打印整张表：行数多时 pandas 会自动省略中间行，
@@ -347,6 +382,10 @@ print(data)
 # 导出的格式便于直接粘贴到 README、文档或博客中展示。
 # 注意：该功能依赖第三方库 tabulate，若未安装会报错；
 # 可用 pip install tabulate 安装。
+# 常用可选参数：
+#   index=False —— 导出时不带行索引列（默认会带上 0、1、2... 的索引列）；
+#   tablefmt='github' —— 表格样式，默认 pipe 风格。
+# 若不写文件名，直接 data.to_markdown() 会返回表格字符串而不写文件。
 data.to_markdown('air_quality_2025.md')
 
 
@@ -429,3 +468,171 @@ df6 = pd.concat([df6, new_row])
 #   前三行是原来的 0.0（行索引 1、2、3），
 #   最后一行是新增的 9.0 / 8.0 / 7.0 / 6.0（行索引 4）。
 print(df6)
+
+# ------------------------------------------------------------
+# 12. merge：按"键"横向合并两张表（类似 SQL 的 JOIN）
+# ------------------------------------------------------------
+# merge 与 concat 的区别：
+#   concat 是简单地把表"上下（或左右）堆叠"；
+#   merge 则是按某个或某几个"键列"的值进行匹配，再把两边的列拼到一起，
+#   概念上等价于数据库的 INNER JOIN / LEFT JOIN / OUTER JOIN 等。
+
+# 准备两张最简单的表，都用 key 列作为关联键：
+#   left  左表：key、A、B 三列；
+#   right 右表：key、C、D 三列。
+left = pd.DataFrame({'key':['K1','K2','K3','K4'],'A':['A1','A2','A3','A4'],'B':['B1','B2','B3','B4']})
+right = pd.DataFrame({'key':['K1','K2','K3','K4'],'C':['C1','C2','C3','C4'],'D':['D1','D2','D3','D4']})
+
+# print(left) / print(right)：先分别查看左右两张表，确认结构。
+print(left)
+print(right)
+
+# pd.merge(left, right, on='key')：
+#   on='key'：指定用 key 列作为连接键；
+#   how 未写，默认 'inner'（内连接），即只保留两边 key 都能匹配上的行。
+# 两张表的 key 都是 K1~K4 且一一对应，因此结果是 4 行 5 列：
+#   key、A、B（来自左表）+ C、D（来自右表）。
+# 如果某一方缺少某个 key，对应行会被直接丢弃。
+res4 = pd.merge(left,right,on='key')
+print(res4)
+
+# 多键连接：当单列不足以唯一标识一行时，用多个列组成"联合键"。
+# 只有当 key1、key2 两列的值同时相等时，才认为两行匹配。
+# left1 右表：4 行，键值组合为 (K0,K0)、(K0,K1)、(K1,K0)、(K2,K1)；
+# right1 右表：4 行，键值组合为 (K0,K0)、(K1,K0)、(K1,K0)、(K2,K0)。
+left1 = pd.DataFrame({'key1':['K0','K0','K1','K2'],'key2':['K0','K1','K0','K1'],'A':['A1','A2','A3','A4'],'B':['B1','B2','B3','B4']},index=[0,1,2,3])
+right1 = pd.DataFrame({'key1':['K0','K1','K1','K2'],'key2':['K0','K0','K0','K0'],'C':['C1','C2','C3','C4'],'D':['D1','D2','D3','D4']},index=[0,1,2,3])
+
+# print(left1) / print(right1)：查看多键表。
+print(left1)
+print(right1)
+
+# how='inner'：内连接，只保留两边 key1、key2 都匹配上的组合。
+#   匹配结果：(K0,K0) 匹配 1 次；(K1,K0) 匹配 2 次（右表有两行 K1,K0），
+#   所以最终 3 行。
+# indicator=True：自动新增一列 _merge，标注每行的来源：
+#   both        —— 该行是两边匹配成功的结果；
+#   left_only   —— 只出现在左表；
+#   right_only  —— 只出现在右表。
+# 用 indicator 可以一眼看出哪些数据是"两边都有"、哪些是"单边独有"。
+res5 = pd.merge(left1,right1,on=['key1','key2'],how='inner',indicator=True)
+print(res5)
+
+# how='outer'：外连接（并集），两边的行全部保留：
+#   both 的 3 行之外，还包含：
+#   left_only 2 行：左表独有的 (K0,K1)、(K2,K1)；
+#   right_only 1 行：右表独有的 (K2,K0)。
+# 对不上的那一侧，列值自动填 NaN。
+# 最终 6 行。
+res6 = pd.merge(left1,right1,on=['key1','key2'],how='outer',indicator=True)
+print(res6)
+
+# how='left'：左连接，以左表为基准，左表的行全部保留；
+# 右表只提供能匹配上的列，匹配不到的位置填 NaN。
+# indicator='indicator_column'：把来源列重命名为 indicator_column，
+# 而不是默认的 _merge。
+# 本例左表 4 行全部保留，其中 (K1,K0) 能匹配到右表两行，所以结果是 5 行。
+res7 = pd.merge(left1,right1,on=['key1','key2'],how='left',indicator='indicator_column')
+print(res7)
+
+# how='right'：右连接，以右表为基准，右表的行全部保留；
+# 左表匹配不到的位置填 NaN。
+# 本例右表 4 行全部保留（右表每个 (K1,K0) 都只能匹配左表 1 行），结果 4 行。
+res8 = pd.merge(left1,right1,on=['key1','key2'],how='right',indicator='indicator_column')
+print(res8)
+
+# 用"行索引"做连接键：
+#   left_index=True, right_index=True 表示不按列连接，
+#   而是用左右两边的行索引进行匹配。
+# 本例 left1、right1 的行索引都是 0、1、2、3，完全一致，
+# 所以 how='inner' 的结果是 4 行；列取两边的并集：
+#   key1、key2 两边都有（保留一份）、A、B 来自左表、C、D 来自右表。
+res9 = pd.merge(left1,right1,left_index=True,right_index=True,how='inner')
+print(res9)
+
+# 同样按行索引连接，但 how='outer'：由于两边索引完全相同，
+# 结果和 inner 一样都是 4 行；若索引有差异，外连接会补 NaN。
+res10 = pd.merge(left1,right1,left_index=True,right_index=True,how='outer')
+print(res10)
+
+# 处理"重名列"：boys、girls 两张表都有 age 列，
+# 直接 merge 后两列重名，pandas 默认会加 _x、_y 后缀区分，
+# 但更直观的做法是自己用 suffixes 指定后缀。
+boys = pd.DataFrame({'k':['K0','K1','K2'],'age':[10,15,20]})
+girls = pd.DataFrame({'k':['K0','K0','K3'],'age':[20,25,30]})
+
+# print(boys) / print(girls)：查看两张带重名列的表。
+print(boys)
+print(girls)
+
+# pd.merge(boys, girls, on='k', how='outer', suffixes=('_boy','_girl'))：
+#   on='k'：按 k 列连接；
+#   how='outer'：k 取两边的并集 K0、K1、K2、K3；
+#   suffixes=('_boy','_girl')：左表 age 列改名 age_boy，
+#       右表 age 列改名 age_girl，避免重名冲突。
+# 结果说明：
+#   K0：左表 1 行 × 右表 2 行 = 2 行（多对多会产生笛卡尔积式的组合）；
+#   K1、K2：只有左表，右表 age_girl 为 NaN；
+#   K3：只有右表，左表 age_boy 为 NaN；
+#   总共 5 行。
+res11 = pd.merge(boys,girls,on='k',how='outer',suffixes=('_boy','_girl'))
+print(res11)
+
+
+# ------------------------------------------------------------
+# 13. 绘图：pandas 自带的 plot 与 matplotlib 联用
+# ------------------------------------------------------------
+# pandas 的 plot 底层就是 matplotlib，所以可以直接 plt.show() 显示图形。
+# 注意：本段绘图与前面的数据分析无直接关系，只是演示可视化方法。
+
+# np.random.randn(1000)：生成 1000 个标准正态分布随机数；
+# index=np.arange(1000)：行索引为 0~999；
+# 再用 pd.Series(...) 包成一维序列。
+data1 = pd.Series(np.random.randn(1000),index=np.arange(1000))
+
+# cumsum()：对序列做累加求和（第 i 项 = 前 i 项之和）。
+# 原本杂乱无章的随机数累加后，会变成一条有明显走势的"随机游走"曲线，
+# 更便于观察趋势变化。
+data1 = data1.cumsum()
+
+# plot()：绘制折线图。Series 默认以行索引为 x 轴、值为 y 轴。
+# plot 默认 kind='line'（折线图），还可通过 kind 换成其他图形：
+#   kind='bar'  柱状图     kind='barh' 横向柱状图
+#   kind='hist' 直方图     kind='box'  箱线图
+#   kind='pie'  饼图       kind='area' 面积图
+data1.plot()
+
+# plt.show()：把画布显示出来（在脚本中必须调用，否则不显示）。
+# 在 Jupyter Notebook 中可改为 %matplotlib inline，无需调用 show；
+# 在普通脚本里 show() 会阻塞程序，直到手动关闭弹出的图形窗口。
+plt.show()
+
+# 生成 1000 行 4 列的随机数矩阵：
+#   columns=list('ABCD')：列名 A、B、C、D；
+#   index=np.arange(1000)：行索引 0~999。
+data2 = pd.DataFrame(np.random.randn(1000,4),index=np.arange(1000),columns=list('ABCD'))
+
+# head()：默认显示前 5 行，用来快速预览数据是否正常。
+print(data2.head())
+
+# 同样做累加，让各列呈现趋势。
+data2 = data2.cumsum()
+
+# plot()：DataFrame 的折线图，默认每列画一条线，并自动加图例。
+data2.plot()
+
+# plot.scatter(...)：绘制散点图。
+#   x='A', y='B'：以 A 列为横坐标、B 列为纵坐标；
+#   color='red'：散点颜色；
+#   label='Class 1'：图例标签。
+# 返回坐标轴对象 ax，便于后续把第二张图叠加到同一张画布上。
+# 其他常用参数：marker='o'（点的形状）、s=10（点的大小）、alpha=0.8（透明度）。
+ax = data2.plot.scatter(x='A',y='B',color='red',label='Class 1')
+
+# 第二次 plot.scatter 传入 ax=ax：
+#   表示把蓝色散点画在刚才的同一个坐标系里，
+#   从而在一张图上同时展示 A-B 和 A-C 两组关系。
+data2.plot.scatter(x='A',y='C',color='blue',label='Class 2',ax=ax)
+
+# 显示叠加后的散点图。
+plt.show()
